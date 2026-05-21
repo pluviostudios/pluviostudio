@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pluvio Studio — Where Friends Team Up</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --ink:#030712;
+  --paper:#f5f0e8;
+  --neon:#39ff9a;
+  --plasma:#ff3cac;
+  --volt:#ffde00;
+  --ice:#00d4ff;
+  --fire:#ff6b00;
+  --deep:#0a0f1e;
+  --mid:#111827;
+  --glass:rgba(255,255,255,0.04);
+  --border:rgba(255,255,255,0.08);
+}
+html{scroll-behavior:smooth;overflow-x:hidden;}
+body{
+  background:var(--deep);
+  color:white;
+  font-family:'Syne',sans-serif;
+  overflow-x:hidden;
+  cursor:none;
+}
+
+/* ── CUSTOM CURSOR ── */
+#cursor{
+  position:fixed;width:14px;height:14px;
+  background:var(--neon);border-radius:50%;
+  pointer-events:none;z-index:99999;
+  transform:translate(-50%,-50%);
+  transition:transform 0.1s,width 0.3s,height 0.3s,background 0.3s;
+  mix-blend-mode:exclusion;
+}
+#cursor-ring{
+  position:fixed;width:40px;height:40px;
+  border:1.5px solid var(--neon);border-radius:50%;
+  pointer-events:none;z-index:99998;
+  transform:translate(-50%,-50%);
+  transition:transform 0.15s ease,width 0.3s,height 0.3s,border-color 0.3s;
+  mix-blend-mode:exclusion;
+}
+body:hover #cursor{opacity:1;}
+.cursor-expand #cursor{width:50px;height:50px;background:var(--plasma);}
+.cursor-expand #cursor-ring{width:70px;height:70px;border-color:var(--plasma);}
+
+/* ── CANVAS PARTICLE BG ── */
+#particle-canvas{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  z-index:0;pointer-events:none;opacity:0.6;
+}
+
+/* ── NOISE OVERLAY ── */
+.noise{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  z-index:1;pointer-events:none;opacity:0.025;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size:200px 200px;
+}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:1000;
+  padding:1.4rem 3rem;
+  display:flex;justify-content:space-between;align-items:center;
+  transition:all 0.4s;
+}
+nav.scrolled{
+  background:rgba(3,7,18,0.85);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:1rem 3rem;
+}
+.nav-logo{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.8rem;letter-spacing:3px;
+  background:linear-gradient(135deg,var(--neon),var(--ice));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.nav-links{display:flex;gap:2.5rem;list-style:none;align-items:center;}
+.nav-links a{
+  color:rgba(255,255,255,0.65);text-decoration:none;
+  font-size:0.85rem;font-weight:600;letter-spacing:2px;
+  text-transform:uppercase;transition:color 0.3s;
+  position:relative;
+}
+.nav-links a::after{
+  content:'';position:absolute;bottom:-4px;left:0;
+  width:0;height:1px;background:var(--neon);
+  transition:width 0.3s ease;
+}
+.nav-links a:hover{color:var(--neon);}
+.nav-links a:hover::after{width:100%;}
+.nav-cta{
+  padding:0.6rem 1.6rem;border:1px solid var(--neon);
+  border-radius:30px;color:var(--neon)!important;
+  transition:all 0.3s!important;font-size:0.8rem!important;
+}
+.nav-cta:hover{background:var(--neon);color:var(--deep)!important;box-shadow:0 0 20px var(--neon);}
+.nav-cta::after{display:none!important;}
+
+/* ── HERO ── */
+.hero{
+  position:relative;z-index:2;
+  min-height:100vh;display:flex;align-items:center;
+  padding:0 8vw;
+  overflow:hidden;
+}
+.hero-bg-text{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(120px,22vw,320px);
+  color:rgba(255,255,255,0.02);
+  white-space:nowrap;letter-spacing:0.05em;
+  user-select:none;pointer-events:none;
+  animation:bgSlide 20s linear infinite;
+}
+@keyframes bgSlide{0%{transform:translate(-50%,-50%) translateX(0);}100%{transform:translate(-50%,-50%) translateX(-100px);}}
+
+.hero-content{position:relative;z-index:3;max-width:900px;}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:0.6rem;
+  font-family:'DM Mono',monospace;font-size:0.75rem;
+  color:var(--neon);letter-spacing:3px;text-transform:uppercase;
+  margin-bottom:2rem;
+  opacity:0;animation:fadeUp 0.8s 0.3s ease forwards;
+}
+.hero-eyebrow::before{
+  content:'';display:inline-block;width:30px;height:1px;background:var(--neon);
+}
+.hero-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(64px,9vw,140px);
+  line-height:0.92;letter-spacing:2px;
+  margin-bottom:1.5rem;
+}
+.hero-title .line{
+  display:block;overflow:hidden;
+}
+.hero-title .line span{
+  display:block;
+  opacity:0;transform:translateY(100%);
+  animation:slideUp 0.9s ease forwards;
+}
+.hero-title .line:nth-child(1) span{animation-delay:0.5s;}
+.hero-title .line:nth-child(2) span{animation-delay:0.7s;}
+.hero-title .line:nth-child(3) span{animation-delay:0.9s;}
+.hero-title .gradient-word{
+  background:linear-gradient(135deg,var(--plasma),var(--volt),var(--neon));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;background-size:200%;
+  animation:gradShift 3s ease infinite;
+}
+@keyframes gradShift{0%,100%{background-position:0%;}50%{background-position:100%;}}
+
+.hero-sub{
+  font-size:1.05rem;color:rgba(255,255,255,0.55);
+  line-height:1.8;max-width:520px;
+  margin-bottom:3rem;
+  opacity:0;animation:fadeUp 0.8s 1.2s ease forwards;
+}
+.hero-actions{
+  display:flex;gap:1.2rem;flex-wrap:wrap;
+  opacity:0;animation:fadeUp 0.8s 1.4s ease forwards;
+}
+.btn-glow{
+  padding:0.95rem 2.2rem;border-radius:4px;
+  font-family:'Syne',sans-serif;font-size:0.85rem;
+  font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  text-decoration:none;display:inline-flex;align-items:center;gap:0.6rem;
+  transition:all 0.3s;cursor:pointer;border:none;
+}
+.btn-glow.primary{
+  background:var(--neon);color:var(--deep);
+  box-shadow:0 0 30px rgba(57,255,154,0.35);
+}
+.btn-glow.primary:hover{
+  transform:translateY(-3px);
+  box-shadow:0 0 50px rgba(57,255,154,0.6),0 10px 30px rgba(57,255,154,0.2);
+}
+.btn-glow.outline{
+  background:transparent;color:white;
+  border:1px solid rgba(255,255,255,0.25);
+}
+.btn-glow.outline:hover{
+  border-color:var(--ice);color:var(--ice);
+  box-shadow:0 0 25px rgba(0,212,255,0.2);
+  transform:translateY(-3px);
+}
+
+.hero-scroll-hint{
+  position:absolute;bottom:2.5rem;left:8vw;
+  display:flex;align-items:center;gap:0.8rem;
+  font-family:'DM Mono',monospace;font-size:0.7rem;
+  color:rgba(255,255,255,0.3);letter-spacing:2px;
+  opacity:0;animation:fadeUp 1s 2s ease forwards;
+}
+.scroll-line{
+  width:40px;height:1px;background:rgba(255,255,255,0.2);
+  position:relative;overflow:hidden;
+}
+.scroll-line::after{
+  content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:var(--neon);animation:scanline 2s ease-in-out infinite;
+}
+@keyframes scanline{0%{left:-100%;}100%{left:100%;}}
+
+.hero-stats{
+  position:absolute;right:8vw;bottom:4rem;
+  display:flex;flex-direction:column;gap:2rem;
+  opacity:0;animation:fadeLeft 1s 1.6s ease forwards;
+}
+.hero-stat{text-align:right;}
+.hero-stat .num{
+  font-family:'Bebas Neue',sans-serif;font-size:2.8rem;
+  background:linear-gradient(135deg,var(--volt),var(--neon));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;line-height:1;
+}
+.hero-stat .label{
+  font-size:0.7rem;color:rgba(255,255,255,0.4);
+  letter-spacing:2px;text-transform:uppercase;
+  font-family:'DM Mono',monospace;
+}
+
+/* ── MARQUEE ── */
+.marquee-section{
+  position:relative;z-index:2;
+  padding:1.5rem 0;overflow:hidden;
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  background:rgba(57,255,154,0.03);
+}
+.marquee-track{
+  display:flex;gap:3rem;white-space:nowrap;
+  animation:marquee 20s linear infinite;
+}
+.marquee-track.rev{animation:marqueeRev 25s linear infinite;}
+@keyframes marquee{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+@keyframes marqueeRev{0%{transform:translateX(-50%);}100%{transform:translateX(0);}}
+.marquee-item{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.1rem;letter-spacing:4px;
+  color:rgba(255,255,255,0.25);
+  display:inline-flex;align-items:center;gap:2rem;
+}
+.marquee-item span{color:var(--neon);font-size:1.2rem;}
+
+/* ── SHARED SECTION STYLES ── */
+section{position:relative;z-index:2;}
+.section-label{
+  font-family:'DM Mono',monospace;font-size:0.72rem;
+  letter-spacing:4px;text-transform:uppercase;
+  color:var(--neon);display:flex;align-items:center;gap:0.8rem;
+  margin-bottom:1.5rem;
+}
+.section-label::before{
+  content:'';display:inline-block;width:30px;height:1px;background:var(--neon);
+}
+.section-h{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(48px,6vw,90px);
+  line-height:0.95;letter-spacing:2px;margin-bottom:1.5rem;
+}
+
+/* ── ABOUT / PHILOSOPHY ── */
+.about{
+  padding:10rem 8vw;
+  display:grid;grid-template-columns:1fr 1fr;gap:6rem;align-items:center;
+}
+.about-visual{
+  position:relative;height:500px;
+}
+.about-orb{
+  position:absolute;
+  border-radius:50%;filter:blur(60px);
+  animation:pulse 4s ease-in-out infinite;
+}
+.orb1{width:300px;height:300px;background:var(--plasma);opacity:0.15;top:0;left:0;animation-delay:0s;}
+.orb2{width:250px;height:250px;background:var(--ice);opacity:0.12;bottom:0;right:0;animation-delay:1.5s;}
+.orb3{width:180px;height:180px;background:var(--neon);opacity:0.1;top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:0.8s;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}}
+
+.about-card{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:260px;height:260px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:rgba(255,255,255,0.03);
+  backdrop-filter:blur(10px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1rem;
+  animation:floatCard 6s ease-in-out infinite;
+}
+@keyframes floatCard{0%,100%{transform:translate(-50%,-50%) rotate(-2deg);}50%{transform:translate(-50%,-50%) rotate(2deg) translateY(-10px);}}
+.about-card .big-emoji{font-size:4rem;}
+.about-card p{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:3px;color:var(--neon);}
+
+.about-text .section-h span{color:var(--plasma);}
+.about-desc{
+  color:rgba(255,255,255,0.55);line-height:1.9;font-size:1rem;margin-bottom:2rem;
+}
+.about-pills{display:flex;gap:0.8rem;flex-wrap:wrap;}
+.pill{
+  padding:0.5rem 1.2rem;border:1px solid var(--border);
+  border-radius:30px;font-size:0.75rem;letter-spacing:1px;
+  color:rgba(255,255,255,0.6);
+  transition:all 0.3s;
+}
+.pill:hover{border-color:var(--neon);color:var(--neon);background:rgba(57,255,154,0.05);}
+
+/* ── GAMES ── */
+.games-section{padding:8rem 8vw;}
+.games-header{
+  display:flex;justify-content:space-between;align-items:flex-end;
+  margin-bottom:4rem;
+}
+.games-grid{
+  display:grid;grid-template-columns:2fr 1fr 1fr;
+  grid-template-rows:340px 280px;
+  gap:1.2rem;
+}
+.game-card{
+  position:relative;border-radius:12px;overflow:hidden;
+  border:1px solid var(--border);cursor:pointer;
+  transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.4s;
+  group:true;
+}
+.game-card:hover{
+  transform:translateY(-8px) scale(1.01);
+  box-shadow:0 30px 60px rgba(0,0,0,0.5);
+}
+.game-card:nth-child(1){grid-row:span 2;}
+.game-card-bg{
+  position:absolute;inset:0;
+  background-size:cover;background-position:center;
+  transition:transform 0.6s ease;filter:brightness(0.7);
+}
+.game-card:hover .game-card-bg{transform:scale(1.08);}
+.game-card-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(3,7,18,0.95) 0%,rgba(3,7,18,0.3) 50%,transparent 100%);
+}
+.game-card-content{
+  position:absolute;bottom:0;left:0;right:0;padding:1.8rem;
+  transform:translateY(10px);opacity:0.7;
+  transition:all 0.4s;
+}
+.game-card:hover .game-card-content{transform:translateY(0);opacity:1;}
+.game-genre{
+  font-family:'DM Mono',monospace;font-size:0.65rem;
+  letter-spacing:3px;color:var(--neon);text-transform:uppercase;
+  margin-bottom:0.5rem;
+}
+.game-name{
+  font-family:'Bebas Neue',sans-serif;font-size:2rem;
+  letter-spacing:2px;margin-bottom:0.5rem;
+}
+.game-card:nth-child(1) .game-name{font-size:3.2rem;}
+.game-desc{
+  font-size:0.82rem;color:rgba(255,255,255,0.6);
+  line-height:1.6;
+}
+.game-tag-row{display:flex;gap:0.5rem;margin-top:1rem;flex-wrap:wrap;}
+.gtag{
+  padding:0.25rem 0.7rem;background:rgba(255,255,255,0.08);
+  border-radius:20px;font-size:0.65rem;letter-spacing:1px;
+  color:rgba(255,255,255,0.7);
+}
+.game-status-badge{
+  position:absolute;top:1rem;right:1rem;
+  padding:0.3rem 0.8rem;border-radius:20px;
+  font-size:0.65rem;letter-spacing:1.5px;font-weight:700;
+  font-family:'DM Mono',monospace;
+  display:flex;align-items:center;gap:0.4rem;
+}
+.badge-live{background:rgba(57,255,154,0.15);color:var(--neon);border:1px solid rgba(57,255,154,0.3);}
+.badge-dev{background:rgba(255,222,0,0.12);color:var(--volt);border:1px solid rgba(255,222,0,0.2);}
+.badge-soon{background:rgba(255,60,172,0.12);color:var(--plasma);border:1px solid rgba(255,60,172,0.2);}
+.live-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 1s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+/* game card bg gradients */
+.gc1{background:linear-gradient(135deg,#0a0f2e,#1a1040,#0d2b45);}
+.gc2{background:linear-gradient(135deg,#1a0a20,#2d0f35,#180020);}
+.gc3{background:linear-gradient(135deg,#0a1a0a,#0d2e1a,#001a0a);}
+.gc4{background:linear-gradient(135deg,#1a1000,#2e2000,#1a0a00);}
+.gc5{background:linear-gradient(135deg,#00101a,#001e2e,#00080f);}
+
+/* ── TEAM ── */
+.team-section{
+  padding:8rem 8vw;
+  background:linear-gradient(180deg,transparent,rgba(57,255,154,0.02),transparent);
+}
+.team-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;
+  margin-top:4rem;
+}
+.team-card{
+  border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;transition:all 0.4s;cursor:pointer;
+  background:rgba(255,255,255,0.02);
+}
+.team-card:hover{
+  border-color:var(--neon);
+  background:rgba(57,255,154,0.04);
+  transform:translateY(-6px);
+  box-shadow:0 20px 40px rgba(0,0,0,0.4),0 0 30px rgba(57,255,154,0.08);
+}
+.team-avatar{
+  height:220px;position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.avatar-bg{
+  position:absolute;inset:0;opacity:0.5;
+  transition:transform 0.4s;
+}
+.team-card:hover .avatar-bg{transform:scale(1.1);}
+.avatar-emoji{font-size:5rem;position:relative;z-index:1;}
+.team-card-info{padding:1.4rem;}
+.team-name{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;margin-bottom:0.25rem;}
+.team-role{font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:2px;color:var(--neon);text-transform:uppercase;margin-bottom:0.8rem;}
+.team-bio{font-size:0.8rem;color:rgba(255,255,255,0.45);line-height:1.6;}
+.team-skills{display:flex;gap:0.4rem;margin-top:1rem;flex-wrap:wrap;}
+.tskill{
+  font-size:0.62rem;padding:0.2rem 0.6rem;border-radius:3px;
+  background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);
+  font-family:'DM Mono',monospace;
+}
+
+/* ── MANIFESTO / FEATURE BAND ── */
+.manifesto{
+  padding:8rem 8vw;
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.manifesto::before{
+  content:'';position:absolute;top:-50%;left:-20%;
+  width:700px;height:700px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,60,172,0.08),transparent 70%);
+  pointer-events:none;
+}
+.manifesto-grid{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:3rem;
+  margin-top:5rem;
+}
+.manifesto-item{position:relative;padding-left:2rem;}
+.manifesto-item::before{
+  content:'';position:absolute;left:0;top:0;
+  width:2px;height:100%;
+  background:linear-gradient(180deg,var(--neon),transparent);
+}
+.manifesto-num{
+  font-family:'DM Mono',monospace;font-size:0.7rem;
+  color:var(--neon);letter-spacing:3px;margin-bottom:1.2rem;
+}
+.manifesto-item h3{
+  font-family:'Bebas Neue',sans-serif;font-size:2rem;
+  letter-spacing:2px;margin-bottom:1rem;line-height:1;
+}
+.manifesto-item p{
+  color:rgba(255,255,255,0.5);font-size:0.88rem;line-height:1.8;
+}
+
+/* ── PROCESS ── */
+.process{padding:8rem 8vw;}
+.process-steps{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  gap:0;margin-top:5rem;position:relative;
+}
+.process-steps::after{
+  content:'';position:absolute;top:2.5rem;left:10%;right:10%;height:1px;
+  background:linear-gradient(90deg,transparent,var(--border),var(--border),transparent);
+}
+.process-step{
+  position:relative;z-index:2;text-align:center;padding:0 1rem;
+}
+.step-icon{
+  width:50px;height:50px;border-radius:50%;
+  background:var(--mid);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;margin:0 auto 1.5rem;
+  transition:all 0.3s;
+}
+.process-step:hover .step-icon{
+  border-color:var(--neon);
+  box-shadow:0 0 20px rgba(57,255,154,0.3);
+  background:rgba(57,255,154,0.08);
+}
+.step-num{
+  font-family:'DM Mono',monospace;font-size:0.65rem;
+  letter-spacing:3px;color:var(--neon);margin-bottom:0.8rem;
+}
+.step-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;margin-bottom:0.5rem;}
+.step-desc{font-size:0.78rem;color:rgba(255,255,255,0.4);line-height:1.7;}
+
+/* ── CONTACT ── */
+.contact-section{
+  padding:8rem 8vw;
+  display:grid;grid-template-columns:1fr 1fr;gap:8rem;align-items:center;
+}
+.contact-left .section-h span{color:var(--volt);}
+.contact-left p{color:rgba(255,255,255,0.5);line-height:1.9;font-size:0.95rem;margin-bottom:3rem;}
+.contact-info-items{display:flex;flex-direction:column;gap:1.2rem;}
+.contact-item{
+  display:flex;align-items:center;gap:1rem;
+  padding:1rem 1.5rem;border:1px solid var(--border);border-radius:8px;
+  background:var(--glass);transition:all 0.3s;
+}
+.contact-item:hover{border-color:var(--neon);background:rgba(57,255,154,0.04);}
+.contact-item .ci-icon{font-size:1.2rem;}
+.contact-item .ci-text{font-size:0.85rem;color:rgba(255,255,255,0.65);}
+.contact-item .ci-label{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--neon);letter-spacing:2px;}
+
+.contact-form{
+  background:rgba(255,255,255,0.02);border:1px solid var(--border);
+  border-radius:16px;padding:2.5rem;
+}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.fg{margin-bottom:1.4rem;}
+.fg label{
+  display:block;font-family:'DM Mono',monospace;font-size:0.68rem;
+  letter-spacing:2px;color:rgba(255,255,255,0.4);margin-bottom:0.7rem;
+  text-transform:uppercase;
+}
+.fg input,.fg textarea,.fg select{
+  width:100%;background:rgba(255,255,255,0.04);
+  border:1px solid var(--border);border-radius:6px;
+  padding:0.9rem 1rem;color:white;font-family:'Syne',sans-serif;
+  font-size:0.88rem;transition:all 0.3s;outline:none;
+  appearance:none;
+}
+.fg input:focus,.fg textarea:focus,.fg select:focus{
+  border-color:var(--neon);
+  box-shadow:0 0 0 3px rgba(57,255,154,0.08);
+  background:rgba(57,255,154,0.03);
+}
+.fg textarea{resize:vertical;min-height:110px;}
+.fg select option{background:#111827;}
+.form-submit-btn{
+  width:100%;padding:1.1rem;
+  background:linear-gradient(135deg,var(--neon),#00e57a);
+  color:var(--deep);border:none;border-radius:6px;
+  font-family:'Bebas Neue',sans-serif;font-size:1.2rem;
+  letter-spacing:3px;cursor:pointer;transition:all 0.3s;
+}
+.form-submit-btn:hover{
+  box-shadow:0 0 40px rgba(57,255,154,0.4);
+  transform:translateY(-2px);
+}
+
+/* ── FOOTER ── */
+footer{
+  border-top:1px solid var(--border);
+  padding:4rem 8vw;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.footer-logo{
+  font-family:'Bebas Neue',sans-serif;font-size:2.5rem;letter-spacing:4px;
+  background:linear-gradient(135deg,var(--neon),var(--ice));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.footer-slogan{font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:3px;color:rgba(255,255,255,0.25);margin-top:0.3rem;}
+.footer-links{display:flex;flex-direction:column;gap:0.8rem;}
+.footer-links a{
+  color:rgba(255,255,255,0.35);text-decoration:none;
+  font-size:0.8rem;letter-spacing:2px;text-transform:uppercase;
+  transition:color 0.3s;
+}
+.footer-links a:hover{color:var(--neon);}
+.footer-socials{display:flex;gap:1.2rem;}
+.soc-btn{
+  width:44px;height:44px;border:1px solid var(--border);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1rem;transition:all 0.3s;text-decoration:none;
+  color:white;
+}
+.soc-btn:hover{border-color:var(--neon);color:var(--neon);box-shadow:0 0 15px rgba(57,255,154,0.25);}
+.footer-copy{font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:2px;color:rgba(255,255,255,0.2);margin-top:0.8rem;}
+
+/* ── KEYFRAMES ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeLeft{from{opacity:0;transform:translateX(30px);}to{opacity:1;transform:translateX(0);}}
+@keyframes slideUp{from{opacity:0;transform:translateY(100%);}to{opacity:1;transform:translateY(0);}}
+
+/* ── SCROLL REVEAL ── */
+.reveal{opacity:0;transform:translateY(40px);transition:opacity 0.8s ease,transform 0.8s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+.reveal-left{opacity:0;transform:translateX(-40px);transition:opacity 0.8s ease,transform 0.8s ease;}
+.reveal-left.visible{opacity:1;transform:translateX(0);}
+.reveal-right{opacity:0;transform:translateX(40px);transition:opacity 0.8s ease,transform 0.8s ease;}
+.reveal-right.visible{opacity:1;transform:translateX(0);}
+
+/* ── GLITCH ── */
+.glitch{position:relative;}
+.glitch::before,.glitch::after{
+  content:attr(data-text);position:absolute;top:0;left:0;width:100%;height:100%;
+  background:transparent;
+}
+.glitch::before{
+  left:2px;text-shadow:-2px 0 var(--plasma);
+  animation:glitch1 3s infinite linear;clip-path:polygon(0 0,100% 0,100% 45%,0 45%);
+}
+.glitch::after{
+  left:-2px;text-shadow:2px 0 var(--ice);
+  animation:glitch2 3s infinite linear;clip-path:polygon(0 55%,100% 55%,100% 100%,0 100%);
+}
+@keyframes glitch1{0%,94%,100%{transform:none;}95%{transform:translate(-3px,1px);}97%{transform:translate(3px,-1px);}}
+@keyframes glitch2{0%,94%,100%{transform:none;}96%{transform:translate(3px,1px);}98%{transform:translate(-3px,-1px);}}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1100px){
+  .games-grid{grid-template-columns:1fr 1fr;grid-template-rows:auto;}
+  .game-card:nth-child(1){grid-row:span 1;}
+  .team-grid{grid-template-columns:repeat(2,1fr);}
+  .manifesto-grid{grid-template-columns:1fr 1fr;}
+  .about{grid-template-columns:1fr;gap:3rem;}
+  .about-visual{height:300px;}
+  .contact-section{grid-template-columns:1fr;gap:4rem;}
+  .process-steps{grid-template-columns:repeat(3,1fr);}
+  .process-steps::after{display:none;}
+}
+@media(max-width:768px){
+  nav{padding:1rem 1.5rem;}
+  .nav-links{display:none;}
+  .hero{padding:0 5vw;}
+  .hero-stats{display:none;}
+  .games-grid{grid-template-columns:1fr;}
+  .team-grid{grid-template-columns:1fr;}
+  .manifesto-grid{grid-template-columns:1fr;}
+  .process-steps{grid-template-columns:1fr 1fr;}
+  .form-row{grid-template-columns:1fr;}
+  footer{flex-direction:column;gap:2rem;text-align:center;}
+  .about,.contact-section,.games-section,.team-section,.manifesto,.process,.contact-section{padding:5rem 5vw;}
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--deep);}
+::-webkit-scrollbar-thumb{background:var(--neon);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- Custom Cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- Particle Canvas -->
+<canvas id="particle-canvas"></canvas>
+
+<!-- Noise Overlay -->
+<div class="noise"></div>
+
+<!-- NAV -->
+<nav id="navbar">
+  <div class="nav-logo">PLUVIO</div>
+  <ul class="nav-links">
+    <li><a href="#games">Games</a></li>
+    <li><a href="#team">Team</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#contact" class="nav-cta">Partner With Us</a></li>
+  </ul>
+</nav>
+
+<!-- ════════════ HERO ════════════ -->
+<section class="hero" id="home">
+  <div class="hero-bg-text">PLUVIO</div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">Indie Game Studio — Est. 2020</div>
+    <h1 class="hero-title">
+      <span class="line"><span>WHERE</span></span>
+      <span class="line"><span class="gradient-word glitch" data-text="FRIENDS">FRIENDS</span></span>
+      <span class="line"><span>TEAM UP.</span></span>
+    </h1>
+    <p class="hero-sub">We're a passionate indie studio building worlds that feel alive — immersive, handcrafted, and made with love by people who never stopped playing.</p>
+    <div class="hero-actions">
+      <a href="#games" class="btn-glow primary">Explore Our Games ↓</a>
+      <a href="#contact" class="btn-glow outline">Work With Us</a>
+    </div>
+  </div>
+  <div class="hero-scroll-hint"><div class="scroll-line"></div>Scroll to explore</div>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="num">6+</div><div class="label">Games Shipped</div></div>
+    <div class="hero-stat"><div class="num">80K</div><div class="label">Players Worldwide</div></div>
+    <div class="hero-stat"><div class="num">12</div><div class="label">Team Members</div></div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-section">
+  <div class="marquee-track">
+    <span class="marquee-item">INDIE GAMES <span>✦</span></span>
+    <span class="marquee-item">PLUVIO STUDIO <span>✦</span></span>
+    <span class="marquee-item">WHERE FRIENDS TEAM UP <span>✦</span></span>
+    <span class="marquee-item">PIXEL PERFECT <span>✦</span></span>
+    <span class="marquee-item">CRAFTED WITH SOUL <span>✦</span></span>
+    <span class="marquee-item">INDIE GAMES <span>✦</span></span>
+    <span class="marquee-item">PLUVIO STUDIO <span>✦</span></span>
+    <span class="marquee-item">WHERE FRIENDS TEAM UP <span>✦</span></span>
+    <span class="marquee-item">PIXEL PERFECT <span>✦</span></span>
+    <span class="marquee-item">CRAFTED WITH SOUL <span>✦</span></span>
+  </div>
+</div>
+
+<!-- ════════════ GAMES ════════════ -->
+<section class="games-section" id="games">
+  <div class="games-header reveal">
+    <div>
+      <div class="section-label">Our Portfolio</div>
+      <h2 class="section-h">HAND<br>CRAFTED<br>WORLDS</h2>
+    </div>
+    <p style="max-width:320px;color:rgba(255,255,255,0.45);font-size:0.9rem;line-height:1.8;">Every game we make is a piece of art — designed from the ground up with originality and passion at the core.</p>
+  </div>
+  <div class="games-grid">
+    <!-- Featured Game -->
+    <div class="game-card">
+      <div class="game-card-bg gc1"></div>
+      <div class="game-card-overlay"></div>
+      <div class="game-status-badge badge-live"><span class="live-dot"></span>LIVE</div>
+      <div class="game-card-content">
+        <div class="game-genre">Action / Adventure</div>
+        <div class="game-name">Neon Drift</div>
+        <div class="game-desc">Race through a cyberpunk city alive with electric storms, rival gangs, and secrets buried in rain-soaked neon streets.</div>
+        <div class="game-tag-row"><span class="gtag">Open World</span><span class="gtag">Multiplayer</span><span class="gtag">Cyberpunk</span></div>
+      </div>
+    </div>
+    <!-- Card 2 -->
+    <div class="game-card">
+      <div class="game-card-bg gc2"></div>
+      <div class="game-card-overlay"></div>
+      <div class="game-status-badge badge-dev">🛠 IN DEV</div>
+      <div class="game-card-content">
+        <div class="game-genre">Puzzle / Horror</div>
+        <div class="game-name">Hollow Veil</div>
+        <div class="game-desc">A mind-bending horror puzzle where reality shifts with every door you open.</div>
+        <div class="game-tag-row"><span class="gtag">Horror</span><span class="gtag">Single Player</span></div>
+      </div>
+    </div>
+    <!-- Card 3 -->
+    <div class="game-card">
+      <div class="game-card-bg gc3"></div>
+      <div class="game-card-overlay"></div>
+      <div class="game-status-badge badge-live"><span class="live-dot"></span>LIVE</div>
+      <div class="game-card-content">
+        <div class="game-genre">Platformer</div>
+        <div class="game-name">Sky Roots</div>
+        <div class="game-desc">A hand-painted platformer about a child who discovers the sky has a floor.</div>
+        <div class="game-tag-row"><span class="gtag">Casual</span><span class="gtag">Artsy</span></div>
+      </div>
+    </div>
+    <!-- Card 4 -->
+    <div class="game-card">
+      <div class="game-card-bg gc4"></div>
+      <div class="game-card-overlay"></div>
+      <div class="game-status-badge badge-soon">🔮 SOON</div>
+      <div class="game-card-content">
+        <div class="game-genre">RPG / Roguelike</div>
+        <div class="game-name">Ember Keep</div>
+        <div class="game-desc">Every run rewrites the dungeon. Built for replayability, chaos, and glory.</div>
+        <div class="game-tag-row"><span class="gtag">Co-op</span><span class="gtag">Dark Fantasy</span></div>
+      </div>
+    </div>
+    <!-- Card 5 -->
+    <div class="game-card">
+      <div class="game-card-bg gc5"></div>
+      <div class="game-card-overlay"></div>
+      <div class="game-status-badge badge-live"><span class="live-dot"></span>LIVE</div>
+      <div class="game-card-content">
+        <div class="game-genre">Survival</div>
+        <div class="game-name">Deep Signal</div>
+        <div class="game-desc">Stranded on an ocean planet, your only company is an AI that might be lying to you.</div>
+        <div class="game-tag-row"><span class="gtag">Survival</span><span class="gtag">Sci-Fi</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ ABOUT ════════════ -->
+<section class="about" id="about">
+  <div class="about-visual reveal-left">
+    <div class="about-orb orb1"></div>
+    <div class="about-orb orb2"></div>
+    <div class="about-orb orb3"></div>
+    <div class="about-card">
+      <div class="big-emoji">🎮</div>
+      <p>WE MAKE ART</p>
+    </div>
+  </div>
+  <div class="about-text reveal-right">
+    <div class="section-label">Our Philosophy</div>
+    <h2 class="section-h">WE ARE<br><span>ARTISTS</span><br>FIRST.</h2>
+    <p class="about-desc">At Pluvio Studio, every pixel has intention. We're a close-knit crew of developers, artists, writers, and dreamers who came together because we believe games can be more — more emotional, more original, more alive.<br><br>Our indie roots keep us agile, experimental, and always honest. We don't chase trends — we set them.</p>
+    <div class="about-pills">
+      <span class="pill">✦ Artist-led</span>
+      <span class="pill">🎨 Handcrafted Art</span>
+      <span class="pill">🧠 Story-first Design</span>
+      <span class="pill">🌐 Cross-platform</span>
+      <span class="pill">🔥 Passion-driven</span>
+      <span class="pill">♻️ Community-built</span>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ MANIFESTO ════════════ -->
+<section class="manifesto" id="manifesto">
+  <div class="reveal">
+    <div class="section-label">What Drives Us</div>
+    <h2 class="section-h">THE<br>PLUVIO<br>WAY</h2>
+  </div>
+  <div class="manifesto-grid">
+    <div class="manifesto-item reveal">
+      <div class="manifesto-num">01 — CRAFT</div>
+      <h3>ART OVER ALGORITHM</h3>
+      <p>We reject the factory model of game dev. Every mechanic, every frame, every sound is deliberate. We make things that could only come from humans who care deeply.</p>
+    </div>
+    <div class="manifesto-item reveal">
+      <div class="manifesto-num">02 — COMMUNITY</div>
+      <h3>BUILT WITH OUR PLAYERS</h3>
+      <p>Our community is our co-dev team. We share prototypes, collect feedback, and build in public — because the best games are built in conversation.</p>
+    </div>
+    <div class="manifesto-item reveal">
+      <div class="manifesto-num">03 — COURAGE</div>
+      <h3>WEIRD IS WELCOME</h3>
+      <p>If an idea is too strange, too risky, too original — that's a green flag. We make the games nobody else dares to, because those are the ones people never forget.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ PROCESS ════════════ -->
+<section class="process">
+  <div class="reveal" style="text-align:center;margin-bottom:1rem;">
+    <div class="section-label" style="justify-content:center;">How We Build</div>
+    <h2 class="section-h">OUR PROCESS</h2>
+  </div>
+  <div class="process-steps">
+    <div class="process-step reveal">
+      <div class="step-icon">💡</div>
+      <div class="step-num">01</div>
+      <div class="step-title">CONCEPT</div>
+      <div class="step-desc">Wild ideas, late nights, and sticky notes covering every wall.</div>
+    </div>
+    <div class="process-step reveal">
+      <div class="step-icon">🎨</div>
+      <div class="step-num">02</div>
+      <div class="step-title">ARTCRAFT</div>
+      <div class="step-desc">World-building through visuals before a single line of code.</div>
+    </div>
+    <div class="process-step reveal">
+      <div class="step-icon">⚙️</div>
+      <div class="step-num">03</div>
+      <div class="step-title">BUILD</div>
+      <div class="step-desc">Engineering meets creativity in tight, focused sprints.</div>
+    </div>
+    <div class="process-step reveal">
+      <div class="step-icon">🧪</div>
+      <div class="step-num">04</div>
+      <div class="step-title">PLAYTEST</div>
+      <div class="step-desc">Community, playtesting, iteration — until it feels right.</div>
+    </div>
+    <div class="process-step reveal">
+      <div class="step-icon">🚀</div>
+      <div class="step-num">05</div>
+      <div class="step-title">LAUNCH</div>
+      <div class="step-desc">Ship it. Watch the world discover something new.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ TEAM ════════════ -->
+<section class="team-section" id="team">
+  <div class="reveal" style="text-align:center;">
+    <div class="section-label" style="justify-content:center;">The Crew</div>
+    <h2 class="section-h">MEET THE<br>TEAM</h2>
+    <p style="color:rgba(255,255,255,0.4);font-size:0.9rem;max-width:500px;margin:1rem auto 0;line-height:1.8;">The passionate individuals who pour their souls into every game we make.</p>
+  </div>
+  <div class="team-grid">
+    <div class="team-card reveal">
+      <div class="team-avatar">
+        <div class="avatar-bg" style="background:linear-gradient(135deg,#0d2b45,#1a4060);"></div>
+        <div class="avatar-emoji">🎯</div>
+      </div>
+      <div class="team-card-info">
+        <div class="team-name">Alex Chen</div>
+        <div class="team-role">Creative Director</div>
+        <div class="team-bio">Visionary at the helm. Turns abstract ideas into game concepts that punch above their weight.</div>
+        <div class="team-skills"><span class="tskill">Direction</span><span class="tskill">Narrative</span><span class="tskill">Unity</span></div>
+      </div>
+    </div>
+    <div class="team-card reveal">
+      <div class="team-avatar">
+        <div class="avatar-bg" style="background:linear-gradient(135deg,#1a0a2e,#2d1040);"></div>
+        <div class="avatar-emoji">🖌️</div>
+      </div>
+      <div class="team-card-info">
+        <div class="team-name">Maya Patel</div>
+        <div class="team-role">Art Director</div>
+        <div class="team-bio">Paints entire worlds from scratch. Every visual in our games carries her fingerprint.</div>
+        <div class="team-skills"><span class="tskill">Concept Art</span><span class="tskill">2D/3D</span><span class="tskill">Shaders</span></div>
+      </div>
+    </div>
+    <div class="team-card reveal">
+      <div class="team-avatar">
+        <div class="avatar-bg" style="background:linear-gradient(135deg,#0a1a0a,#0d2e1a);"></div>
+        <div class="avatar-emoji">⚡</div>
+      </div>
+      <div class="team-card-info">
+        <div class="team-name">Sam Rivera</div>
+        <div class="team-role">Lead Engineer</div>
+        <div class="team-bio">Makes the magic technically possible. Obsessed with performance, physics, and procedural generation.</div>
+        <div class="team-skills"><span class="tskill">C#</span><span class="tskill">Unreal</span><span class="tskill">Systems</span></div>
+      </div>
+    </div>
+    <div class="team-card reveal">
+      <div class="team-avatar">
+        <div class="avatar-bg" style="background:linear-gradient(135deg,#1a1000,#2e2000);"></div>
+        <div class="avatar-emoji">🎵</div>
+      </div>
+      <div class="team-card-info">
+        <div class="team-name">Zoe Kim</div>
+        <div class="team-role">Audio Designer</div>
+        <div class="team-bio">Composes the heartbeat of every game. Her soundscapes are so good players leave headphones in.</div>
+        <div class="team-skills"><span class="tskill">Composition</span><span class="tskill">FMOD</span><span class="tskill">Foley</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ CONTACT ════════════ -->
+<section class="contact-section" id="contact">
+  <div class="contact-left reveal-left">
+    <div class="section-label">Let's Talk</div>
+    <h2 class="section-h">GOT A<br><span>VISION?</span><br>SO DO WE.</h2>
+    <p>Whether you're a publisher, a potential partner, a player with a wild idea, or just someone who loves indie games — our door is always open.</p>
+    <div class="contact-info-items">
+      <div class="contact-item">
+        <span class="ci-icon">📧</span>
+        <div>
+          <div class="ci-label">Email Us</div>
+          <div class="ci-text">hello@pluviolabs.com</div>
+        </div>
+      </div>
+      <div class="contact-item">
+        <span class="ci-icon">💬</span>
+        <div>
+          <div class="ci-label">Discord Community</div>
+          <div class="ci-text">discord.gg/pluviostudio</div>
+        </div>
+      </div>
+      <div class="contact-item">
+        <span class="ci-icon">🐦</span>
+        <div>
+          <div class="ci-label">Twitter / X</div>
+          <div class="ci-text">@pluviostudio</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="contact-form reveal-right">
+    <div class="section-label" style="margin-bottom:2rem;">Send a Message</div>
+    <form onsubmit="handleForm(event)">
+      <div class="form-row">
+        <div class="fg">
+          <label>Your Name</label>
+          <input type="text" placeholder="e.g. Jordan Lee" required>
+        </div>
+        <div class="fg">
+          <label>Email</label>
+          <input type="email" placeholder="you@domain.com" required>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Reason for Contact</label>
+        <select>
+          <option>Partnership / Collaboration</option>
+          <option>Press / Media Inquiry</option>
+          <option>Player Feedback</option>
+          <option>Join Our Team</option>
+          <option>General Hello</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Your Message</label>
+        <textarea placeholder="Tell us what's on your mind..."></textarea>
+      </div>
+      <button type="submit" class="form-submit-btn">SEND IT →</button>
+    </form>
+  </div>
+</section>
+
+<!-- SECOND MARQUEE -->
+<div class="marquee-section">
+  <div class="marquee-track rev">
+    <span class="marquee-item">ART OVER ALGORITHM <span>★</span></span>
+    <span class="marquee-item">WEIRD IS WELCOME <span>★</span></span>
+    <span class="marquee-item">BUILT WITH SOUL <span>★</span></span>
+    <span class="marquee-item">PLUVIO STUDIO <span>★</span></span>
+    <span class="marquee-item">WHERE FRIENDS TEAM UP <span>★</span></span>
+    <span class="marquee-item">ART OVER ALGORITHM <span>★</span></span>
+    <span class="marquee-item">WEIRD IS WELCOME <span>★</span></span>
+    <span class="marquee-item">BUILT WITH SOUL <span>★</span></span>
+    <span class="marquee-item">PLUVIO STUDIO <span>★</span></span>
+    <span class="marquee-item">WHERE FRIENDS TEAM UP <span>★</span></span>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <div class="footer-logo">PLUVIO</div>
+    <div class="footer-slogan">WHERE FRIENDS TEAM UP</div>
+    <div class="footer-copy">© 2024 Pluvio Studio. All rights reserved.</div>
+  </div>
+  <div class="footer-links">
+    <a href="#games">Games</a>
+    <a href="#team">Team</a>
+    <a href="#about">Philosophy</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <div>
+    <div class="footer-socials" style="margin-bottom:1rem;">
+      <a href="#" class="soc-btn">𝕏</a>
+      <a href="#" class="soc-btn">in</a>
+      <a href="#" class="soc-btn">yt</a>
+      <a href="#" class="soc-btn">dc</a>
+    </div>
+    <div class="footer-copy" style="text-align:right;">Made with ♥ by friends.</div>
+  </div>
+</footer>
+
+<script>
+/* ── CURSOR ── */
+const cursor=document.getElementById('cursor');
+const ring=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px';});
+(function animRing(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animRing);})();
+document.querySelectorAll('a,button,.game-card,.team-card').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('cursor-expand'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('cursor-expand'));
+});
+
+/* ── PARTICLES ── */
+const canvas=document.getElementById('particle-canvas');
+const ctx=canvas.getContext('2d');
+canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
+const particles=[];
+const COLORS=['#39ff9a','#00d4ff','#ff3cac','#ffde00','#ff6b00'];
+for(let i=0;i<90;i++){
+  particles.push({
+    x:Math.random()*canvas.width,y:Math.random()*canvas.height,
+    vx:(Math.random()-0.5)*0.4,vy:(Math.random()-0.5)*0.4,
+    r:Math.random()*2+0.5,
+    color:COLORS[Math.floor(Math.random()*COLORS.length)],
+    alpha:Math.random()*0.5+0.1,
+    pulse:Math.random()*Math.PI*2,
+  });
+}
+function drawParticles(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.pulse+=0.02;
+    if(p.x<0)p.x=canvas.width;if(p.x>canvas.width)p.x=0;
+    if(p.y<0)p.y=canvas.height;if(p.y>canvas.height)p.y=0;
+    const a=p.alpha*(0.6+0.4*Math.sin(p.pulse));
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=p.color;ctx.globalAlpha=a;ctx.fill();
+    ctx.globalAlpha=1;
+  });
+  // Connection lines
+  for(let i=0;i<particles.length;i++){
+    for(let j=i+1;j<particles.length;j++){
+      const dx=particles[i].x-particles[j].x;
+      const dy=particles[i].y-particles[j].y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<120){
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x,particles[i].y);
+        ctx.lineTo(particles[j].x,particles[j].y);
+        ctx.strokeStyle='rgba(57,255,154,'+((1-dist/120)*0.08)+')';
+        ctx.lineWidth=0.5;ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(drawParticles);
+}
+drawParticles();
+
+/* ── NAVBAR SCROLL ── */
+const navbar=document.getElementById('navbar');
+window.addEventListener('scroll',()=>{
+  navbar.classList.toggle('scrolled',window.scrollY>80);
+});
+
+/* ── SCROLL REVEAL ── */
+const revealEls=document.querySelectorAll('.reveal,.reveal-left,.reveal-right');
+const observer=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      const el=e.target;
+      const siblings=el.parentElement.querySelectorAll('.reveal,.reveal-left,.reveal-right');
+      let delay=0;
+      siblings.forEach((s,i)=>{if(s===el)delay=i*100;});
+      setTimeout(()=>el.classList.add('visible'),delay);
+      observer.unobserve(el);
+    }
+  });
+},{threshold:0.12,rootMargin:'0px 0px -40px 0px'});
+revealEls.forEach(el=>observer.observe(el));
+
+/* ── FORM HANDLER ── */
+function handleForm(e){
+  e.preventDefault();
+  const btn=e.target.querySelector('.form-submit-btn');
+  btn.textContent='MESSAGE SENT ✓';
+  btn.style.background='linear-gradient(135deg,#00e57a,var(--neon))';
+  setTimeout(()=>{btn.textContent='SEND IT →';btn.style.background='';e.target.reset();},3000);
+}
+
+/* ── PARALLAX HERO BG TEXT ── */
+window.addEventListener('scroll',()=>{
+  const el=document.querySelector('.hero-bg-text');
+  if(el)el.style.transform=`translate(-50%,calc(-50% + ${window.scrollY*0.15}px))`;
+});
+</script>
+</body>
+</html>
